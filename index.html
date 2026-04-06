@@ -58,4 +58,131 @@
         </a>
     </div>
 
-    <button onclick="resetVote()" style="width:100%; padding:12px; background:#f0f0f0; color:#666; border
+    <button onclick="resetVote()" style="width:100%; padding:12px; background:#f0f0f0; color:#666; border:none; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; margin-top:20px;">↺ 다시 투표하기</button>
+  </div>
+</div>
+
+<script>
+// 1. Firebase 설정
+const firebaseConfig = {
+    apiKey: "AIzaSyDwDWQPFvfeT1oOXxLvza00SB4GaKAmKWI",
+    authDomain: "dmm-260406.firebaseapp.com",
+    databaseURL: "https://dmm-260406-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "dmm-260406",
+    storageBucket: "dmm-260406.firebasestorage.app",
+    messagingSenderId: "274127728428",
+    appId: "1:274127728428:web:2849db06b4242975f10689"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 2. 투표 항목 데이터
+const OPTS = [
+    {v:'dmmtv_anime', l:'✨ DMM TV (애니메이션)'},
+    {v:'dmmtv_drama', l:'📺 DMM TV (드라마·영화)'},
+    {v:'game', l:'🎮 DMM GAMES (게임)'},
+    {v:'books', l:'📚 DMM BOOKS (만화)'},
+    {v:'oripa', l:'🎁 D오리파 (오리지널 카드팩)'},
+    {v:'fanza', l:'🔞 FANZA (성인 콘텐츠)'},
+    {v:'etc', l:'💡 기타 (직접 입력)'}
+];
+
+let selectedVal = "";
+
+// 3. 화면에 항목 그리기
+function renderOptions() {
+    const listEl = document.getElementById('optionsList');
+    let html = "";
+    OPTS.forEach((o, i) => {
+        html += `
+            <div class="opt-item" id="lbl_opt${i}" onclick="selectOpt('${o.v}', 'opt${i}')">
+                ${o.l}
+            </div>`;
+    });
+    listEl.innerHTML = html;
+}
+
+// 4. 항목 선택 시 디자인 변경 및 기타창 제어
+function selectOpt(v, id) {
+    selectedVal = v;
+    document.querySelectorAll('.opt-item').forEach(el => {
+        el.style.border = "2px solid #ebebeb";
+        el.style.background = "#fafafa";
+    });
+    const selected = document.getElementById('lbl_' + id);
+    selected.style.border = "2px solid #e74c3c";
+    selected.style.background = "#fff5f5";
+
+    const etcArea = document.getElementById('etcInputArea');
+    etcArea.style.display = (v === 'etc') ? 'block' : 'none';
+    if(v === 'etc') document.getElementById('etcText').focus();
+}
+
+// 5. 투표 제출 로직
+function submitVote() {
+    const naverId = document.getElementById('naverId').value.trim();
+    const etcText = document.getElementById('etcText').value.trim();
+    
+    if(!naverId) { alert("네이버 아이디를 입력해 주세요!"); return; }
+    if(!selectedVal) { alert("투표 항목을 선택해 주세요!"); return; }
+    if(selectedVal === 'etc' && !etcText) { alert("기타 의견을 입력해 주세요!"); return; }
+
+    db.ref('user_votes/' + naverId).once('value', (snapshot) => {
+        if(snapshot.exists()) {
+            alert("이미 참여하신 아이디입니다.");
+        } else {
+            const voteData = {
+                choice: selectedVal,
+                timestamp: Date.now()
+            };
+            if(selectedVal === 'etc') voteData.etc_comment = etcText;
+
+            db.ref('user_votes/' + naverId).set(voteData).then(() => {
+                db.ref('votes_stats/' + selectedVal).transaction(c => (c || 0) + 1);
+                localStorage.setItem("dmm_voted", "true");
+                showResults();
+            });
+        }
+    });
+}
+
+// 6. 결과 화면 표시
+function showResults() {
+    db.ref('votes_stats').on('value', (snap) => {
+        const data = snap.val() || {};
+        const total = Object.values(data).reduce((a, b) => a + b, 0) || 0;
+        let html = "";
+        OPTS.forEach(o => {
+            const cnt = data[o.v] || 0;
+            const pct = total ? Math.round((cnt/total)*100) : 0;
+            html += `
+                <div style="margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">
+                        <span>${o.l}</span><span>${pct}% (${cnt}명)</span>
+                    </div>
+                    <div style="height:8px;background:#f0f0f0;border-radius:10px;overflow:hidden;">
+                        <div style="width:${pct}%;height:100%;background:#e74c3c;transition:0.5s;"></div>
+                    </div>
+                </div>`;
+        });
+        document.getElementById("resultBars").innerHTML = html;
+        document.getElementById("totalCount").textContent = "총 " + total + "명 참여";
+        document.getElementById("voteForm").style.display = "none";
+        document.getElementById("resultView").style.display = "block";
+    });
+}
+
+// 7. 다시 투표하기 (초기화)
+function resetVote() {
+    localStorage.removeItem("dmm_voted");
+    location.reload();
+}
+
+// 실행
+renderOptions();
+if(localStorage.getItem("dmm_voted")) showResults();
+
+</script>
+</body>
+</html>
