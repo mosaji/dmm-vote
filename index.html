@@ -84,4 +84,48 @@ function selectOpt(val, id) {
 function submitVote() {
     if(!selectedVal) return alert("항목을 선택해 주세요! 😊");
     db.child(selectedVal).transaction(c => (c || 0) + 1);
-    localStorage.setItem("dmm_voted_v2",
+    localStorage.setItem("dmm_voted_v2", "true");
+    showResults();
+}
+
+function showResults() {
+    db.on('value', (snap) => {
+        const data = snap.val() || {};
+        const total = Object.values(data).reduce((a, b) => a + b, 0) || 0;
+        let html = "";
+        const sortedOpts = [...OPTS].sort((a,b) => (data[b.v]||0) - (data[a.v]||0));
+        sortedOpts.forEach(o => {
+            const cnt = data[o.v] || 0;
+            const pct = total ? Math.round((cnt/total)*100) : 0;
+            html += `
+                <div style="margin-bottom:14px;">
+                    <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:6px; color:#333;">
+                        <span>${o.l}</span><span>${pct}% (${cnt}명)</span>
+                    </div>
+                    <div style="height:10px;background:#f0f0f0;border-radius:10px;overflow:hidden;">
+                        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#e74c3c,#ff6b6b);transition:width 1s ease-in-out;"></div>
+                    </div>
+                </div>`;
+        });
+        document.getElementById("resultBars").innerHTML = html;
+        document.getElementById("totalCount").textContent = "총 " + total + "명 참여 중";
+        document.getElementById("voteForm").style.display = "none";
+        document.getElementById("resultView").style.display = "block";
+    });
+}
+
+// 다시 투표하기 함수
+function resetVote() {
+    localStorage.removeItem("dmm_voted_v2"); // 투표 기록 삭제
+    selectedVal = ""; // 선택값 초기화
+    document.getElementById("voteForm").style.display = "block";
+    document.getElementById("resultView").style.display = "none";
+    renderOptions(); // 항목 다시 그리기
+}
+
+// 초기 실행
+renderOptions();
+if(localStorage.getItem("dmm_voted_v2")) showResults();
+</script>
+</body>
+</html>
