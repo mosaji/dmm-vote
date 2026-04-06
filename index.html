@@ -43,13 +43,17 @@ const firebaseConfig = {
     appId: "1:274127728428:web:2849db06b4242975f10689"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database().ref("votes");
 
+// 중요: 투표 항목이 변경되었으므로 데이터베이스 경로를 "votes_v2"로 변경하여 새롭게 투표를 시작합니다.
+const db = firebase.database().ref("votes_v2");
+
+// 투표 항목 정의 (새 항목 추가됨)
 const OPTS = [
     {v:'dmmtv_anime', l:'✨ DMM TV (애니메이션)', s:'최신 방영작·구작 애니 스트리밍'},
     {v:'dmmtv_drama', l:'📺 DMM TV (드라마·영화)', s:'일본 드라마·영화·예능 스트리밍'},
     {v:'game', l:'🎮 DMM GAMES (게임)', s:'PC·브라우저 게임'},
     {v:'books', l:'📚 DMM BOOKS (만화)', s:'일본 만화·라노베 전자책'},
+    {v:'oripa', l:'🎁 D오리파 (오리지널 카드팩)', s:'포켓몬, 유희왕 등 온라인 뽑기'}, // 새 항목 추가
     {v:'fanza', l:'🔞 FANZA (성인 콘텐츠)', s:'R18 동영상·만화·게임'},
     {v:'etc', l:'💡 기타 (그 외 항목)', s:'위 항목에 없는 DMM 서비스'}
 ];
@@ -83,8 +87,10 @@ function selectOpt(val, id) {
 
 function submitVote() {
     if(!selectedVal) return alert("항목을 선택해 주세요! 😊");
+    if(selectedVal === 'etc' && !document.getElementById('etcText').value.trim()) return alert("내용을 입력해주세요!");
+    
     db.child(selectedVal).transaction(c => (c || 0) + 1);
-    localStorage.setItem("dmm_voted_v2", "true");
+    localStorage.setItem("dmm_voted_v3", "true"); // 로컬 저장소 키 변경
     showResults();
 }
 
@@ -114,18 +120,16 @@ function showResults() {
     });
 }
 
-// 다시 투표하기 함수
 function resetVote() {
-    localStorage.removeItem("dmm_voted_v2"); // 투표 기록 삭제
-    selectedVal = ""; // 선택값 초기화
+    localStorage.removeItem("dmm_voted_v3");
+    selectedVal = "";
     document.getElementById("voteForm").style.display = "block";
     document.getElementById("resultView").style.display = "none";
-    renderOptions(); // 항목 다시 그리기
+    renderOptions();
 }
 
-// 초기 실행
 renderOptions();
-if(localStorage.getItem("dmm_voted_v2")) showResults();
+if(localStorage.getItem("dmm_voted_v3")) showResults();
 </script>
 </body>
 </html>
