@@ -12,14 +12,14 @@
   
   <div id="voteForm">
     <span style="display:inline-block;background:#FF3B3B;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:12px;">📊 지금 투표하기</span>
-    <div style="font-size:18px;font-weight:800;color:#111;line-height:1.4;margin-bottom:6px;">당신이 DMM에서<br>주로 이용하는 콘텐츠는?</div>
-    <div style="font-size:13px;color:#888;margin-bottom:22px;">재팬플레이 내부 업무 참고용으로만 사용됩니다.</div>
+    <div style="font-size:18px;font-weight:800;color:#111;line-height:1.4;margin-bottom:6px;">DMM 에서 주로 이용하는 콘텐츠 또는<br>이용해 보고 싶은 콘텐츠는?</div>
     
-    <div id="optionsList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
-
-    <div id="etcInputWrap" style="display:none;margin-bottom:12px;">
-      <input type="text" id="etcText" maxlength="40" placeholder="어떤 서비스인지 간단히 적어주세요" style="width:100%;padding:10px 14px;border:2px solid #e74c3c;border-radius:8px;font-size:13px;box-sizing:border-box;width:100%;">
+    <div style="margin: 20px 0;">
+      <label style="font-size:13px; font-weight:700; color:#444;">네이버 아이디</label>
+      <input type="text" id="naverId" placeholder="아이디를 입력해주세요" style="width:100%;padding:12px;margin-top:5px;border:2px solid #ebebeb;border-radius:8px;font-size:14px;box-sizing:border-box; outline:none; transition:0.2s;">
     </div>
+
+    <div id="optionsList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
     <button onclick="submitVote()" style="width:100%;padding:14px;background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;">✔ 투표하기</button>
   </div>
 
@@ -27,8 +27,7 @@
     <span style="display:inline-block;background:#FF3B3B;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:12px;">📊 RESULT</span>
     <div id="resultBars"></div>
     <div id="totalCount" style="text-align:center;font-size:12px;color:#bbb;margin-top:16px;"></div>
-    
-    <button onclick="resetVote()" style="width:100%;padding:12px;background:#f0f0f0;color:#666;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:20px; transition: 0.2s;">↺ 다시 투표하기</button>
+    <button onclick="resetVote()" style="width:100%;padding:12px;background:#f0f0f0;color:#666;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:20px;">↺ 다시 투표하기</button>
   </div>
 </div>
 
@@ -43,93 +42,93 @@ const firebaseConfig = {
     appId: "1:274127728428:web:2849db06b4242975f10689"
 };
 firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-// 중요: 투표 항목이 변경되었으므로 데이터베이스 경로를 "votes_v2"로 변경하여 새롭게 투표를 시작합니다.
-const db = firebase.database().ref("votes_v2");
-
-// 투표 항목 정의 (새 항목 추가됨)
 const OPTS = [
-    {v:'dmmtv_anime', l:'✨ DMM TV (애니메이션)', s:'최신 방영작·구작 애니 스트리밍'},
-    {v:'dmmtv_drama', l:'📺 DMM TV (드라마·영화)', s:'일본 드라마·영화·예능 스트리밍'},
-    {v:'game', l:'🎮 DMM GAMES (게임)', s:'PC·브라우저 게임'},
-    {v:'books', l:'📚 DMM BOOKS (만화)', s:'일본 만화·라노베 전자책'},
-    {v:'oripa', l:'🎁 D오리파 (오리지널 카드팩)', s:'포켓몬, 유희왕 등 온라인 뽑기'}, // 새 항목 추가
-    {v:'fanza', l:'🔞 FANZA (성인 콘텐츠)', s:'R18 동영상·만화·게임'},
-    {v:'etc', l:'💡 기타 (그 외 항목)', s:'위 항목에 없는 DMM 서비스'}
+    {v:'dmmtv_anime', l:'✨ DMM TV (애니메이션)'},
+    {v:'dmmtv_drama', l:'📺 DMM TV (드라마·영화)'},
+    {v:'game', l:'🎮 DMM GAMES (게임)'},
+    {v:'books', l:'📚 DMM BOOKS (만화)'},
+    {v:'oripa', l:'🎁 D오리파 (오리지널 카드팩)'},
+    {v:'fanza', l:'🔞 FANZA (성인 콘텐츠)'}
 ];
 
 function renderOptions() {
     const listEl = document.getElementById('optionsList');
     listEl.innerHTML = "";
-    OPTS.forEach((o, index) => {
-        const id = 'opt' + index;
+    OPTS.forEach((o, i) => {
+        const id = 'opt' + i;
         listEl.innerHTML += `
             <div onclick="selectOpt('${o.v}', '${id}')" style="cursor:pointer;">
-                <label id="lbl_${id}" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border:2px solid #ebebeb;border-radius:10px;cursor:pointer;background:#fafafa;font-size:14px;color:#333;font-weight:500;transition:0.2s;">
-                  <span style="width:32px;height:32px;border-radius:8px;background:#f0f0f0;display:inline-flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${o.l.split(' ')[0]}</span>
-                  <span style="flex:1;line-height:1.3;">${o.l.split(' ').slice(1).join(' ')}<span style="display:block;font-size:11px;color:#aaa;font-weight:400;margin-top:2px;">${o.s}</span></span>
+                <label id="lbl_${id}" style="display:flex;align-items:center;gap:12px;padding:15px;border:2px solid #ebebeb;border-radius:10px;cursor:pointer;background:#fafafa;font-size:14px;color:#333;font-weight:600;transition:0.2s;">
+                  <span>${o.l}</span>
                 </label>
             </div>`;
     });
 }
 
 let selectedVal = "";
-function selectOpt(val, id) {
-    selectedVal = val;
-    OPTS.forEach((o, index) => {
-        const targetId = 'opt' + index;
-        const lbl = document.getElementById('lbl_' + targetId);
-        lbl.style.border = (targetId === id) ? "2px solid #e74c3c" : "2px solid #ebebeb";
-        lbl.style.background = (targetId === id) ? "#fff5f5" : "#fafafa";
+function selectOpt(v, id) {
+    selectedVal = v;
+    document.querySelectorAll('[id^="lbl_"]').forEach(el => {
+        el.style.border = "2px solid #ebebeb";
+        el.style.background = "#fafafa";
     });
-    document.getElementById("etcInputWrap").style.display = (val === "etc" ? "block" : "none");
+    document.getElementById('lbl_'+id).style.border = "2px solid #e74c3c";
+    document.getElementById('lbl_'+id).style.background = "#fff5f5";
 }
 
 function submitVote() {
-    if(!selectedVal) return alert("항목을 선택해 주세요! 😊");
-    if(selectedVal === 'etc' && !document.getElementById('etcText').value.trim()) return alert("내용을 입력해주세요!");
-    
-    db.child(selectedVal).transaction(c => (c || 0) + 1);
-    localStorage.setItem("dmm_voted_v3", "true"); // 로컬 저장소 키 변경
-    showResults();
+    const naverId = document.getElementById('naverId').value.trim();
+    if(!naverId) return alert("네이버 아이디를 입력해 주세요!");
+    if(!selectedVal) return alert("투표 항목을 선택해 주세요!");
+
+    // 아이디 수집 및 카운트 증가
+    db.ref('user_votes/' + naverId).once('value', (s) => {
+        if(s.exists()) {
+            alert("이미 투표에 참여한 아이디입니다.");
+        } else {
+            // 1. 개별 유저 투표 기록 저장
+            db.ref('user_votes/' + naverId).set({
+                choice: selectedVal,
+                timestamp: Date.now()
+            });
+            // 2. 전체 통계 카운트 증가
+            db.ref('votes_stats/' + selectedVal).transaction(c => (c || 0) + 1);
+            
+            localStorage.setItem("dmm_voted_id", "true");
+            showResults();
+        }
+    });
 }
 
 function showResults() {
-    db.on('value', (snap) => {
+    db.ref('votes_stats').on('value', (snap) => {
         const data = snap.val() || {};
         const total = Object.values(data).reduce((a, b) => a + b, 0) || 0;
         let html = "";
-        const sortedOpts = [...OPTS].sort((a,b) => (data[b.v]||0) - (data[a.v]||0));
-        sortedOpts.forEach(o => {
+        OPTS.forEach(o => {
             const cnt = data[o.v] || 0;
             const pct = total ? Math.round((cnt/total)*100) : 0;
-            html += `
-                <div style="margin-bottom:14px;">
-                    <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:6px; color:#333;">
-                        <span>${o.l}</span><span>${pct}% (${cnt}명)</span>
-                    </div>
-                    <div style="height:10px;background:#f0f0f0;border-radius:10px;overflow:hidden;">
-                        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#e74c3c,#ff6b6b);transition:width 1s ease-in-out;"></div>
-                    </div>
-                </div>`;
+            html += `<div style="margin-bottom:12px;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;"><span>${o.l}</span><span>${pct}% (${cnt}명)</span></div>
+                <div style="height:8px;background:#f0f0f0;border-radius:10px;overflow:hidden;">
+                <div style="width:${pct}%;height:100%;background:#e74c3c;transition:0.5s;"></div></div></div>`;
         });
         document.getElementById("resultBars").innerHTML = html;
-        document.getElementById("totalCount").textContent = "총 " + total + "명 참여 중";
+        document.getElementById("totalCount").textContent = "총 " + total + "명 참여";
         document.getElementById("voteForm").style.display = "none";
         document.getElementById("resultView").style.display = "block";
     });
 }
 
 function resetVote() {
-    localStorage.removeItem("dmm_voted_v3");
-    selectedVal = "";
-    document.getElementById("voteForm").style.display = "block";
-    document.getElementById("resultView").style.display = "none";
-    renderOptions();
+    localStorage.removeItem("dmm_voted_id");
+    location.reload();
 }
 
 renderOptions();
-if(localStorage.getItem("dmm_voted_v3")) showResults();
+if(localStorage.getItem("dmm_voted_id")) showResults();
 </script>
 </body>
 </html>
